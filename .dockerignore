@@ -1,0 +1,60 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Maven
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Documentation
+*.md
+!README.md
+docs/
+specs/
+.specify/
+
+# Tests
+tests/
+src/test/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Kubernetes
+k8s/
+helm/
+
+# Scripts
+scripts/
+*.sh
+
+# Temporary
+*.tmp
+*.bak
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
