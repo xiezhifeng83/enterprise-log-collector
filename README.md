@@ -1,12 +1,13 @@
 # Enterprise Log Collection and Analysis System
 
-一个基于 Spring Boot 的企业级日志收集与分析系统，支持从多台远程服务器自动收集日志，并提供实时分析、告警和可视化功能。
+一个基于 Spring Boot 的企业级日志收集与分析系统，支持从多台远程服务器自动收集日志，并提供实时分析、告警、查询和可视化功能。
 
 ## 📋 目录
 
 - [功能特性](#功能特性)
 - [技术架构](#技术架构)
 - [快速开始](#快速开始)
+- [日志查看系统](#日志查看系统) ⭐ NEW
 - [系统架构](#系统架构)
 - [API 文档](#api-文档)
 - [配置说明](#配置说明)
@@ -16,6 +17,14 @@
 ## ✨ 功能特性
 
 ### 核心功能
+
+- **🔍 日志查看与分析** ⭐ NEW
+  - 现代化Web界面日志查看
+  - 多维度日志查询（时间、服务器、类型）
+  - 事务追踪和关联查看
+  - 实时统计分析
+  - 错误日志筛选
+  - 分页浏览
 
 - **🔄 自动化日志收集**
   - 支持多台 Linux 服务器并行日志收集
@@ -136,6 +145,225 @@ java -jar target/enterprise-log-collector-1.0.0-SNAPSHOT.jar
 - Prometheus: http://localhost:9090
 - Keycloak: http://localhost:8180 (admin/admin)
 - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
+
+## 🔍 日志查看系统
+
+### 功能概览
+
+日志查看系统提供了一个现代化的 Web 界面，用于查询、分析和追踪系统日志。支持多维度查询、事务追踪和实时统计分析。
+
+### 快速访问
+
+1. **启动应用**
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+2. **访问日志查看界面**
+   - 打开浏览器访问: http://localhost:8080
+   - 无需登录（开发环境）
+
+### 界面功能
+
+#### 📝 日志查询标签页
+
+**多维度筛选**：
+- 时间范围选择（开始时间、结束时间）
+- 服务器ID筛选
+- 日志类型筛选
+- 事务ID查询
+- 错误日志标识筛选
+
+**日志列表展示**：
+- 日志ID、时间戳、服务器ID
+- 日志类型、文件路径
+- 内容摘要（点击查看完整内容）
+- 事务ID追踪链接
+- 错误标识高亮显示
+
+**操作功能**：
+- 分页浏览（每页10/20/50条可选）
+- 查看完整日志内容（弹窗）
+- 一键清空筛选条件
+
+#### 🔄 事务追踪标签页
+
+**事务查询**：
+- 事务ID搜索
+- 状态筛选（成功/失败/处理中）
+- 时间范围查询
+
+**事务详情**：
+- 事务ID、状态、持续时间
+- 源系统和目标系统
+- 关联日志查看（一键跳转）
+
+#### 📊 统计分析标签页
+
+**实时统计卡片**：
+- 日志总数
+- 错误日志数量
+- 已解析/未解析日志数
+- 错误率计算
+
+**时间范围分析**：
+- 选择统计时间段
+- 自动计算统计数据
+- 可视化展示
+
+### RESTful API
+
+#### 日志查询接口
+
+**查询日志列表**
+```http
+GET /api/v1/logs?page=0&size=20&startTime=2025-10-18T00:00:00&endTime=2025-10-19T23:59:59&serverId=1&logType=ERROR
+```
+
+响应示例：
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "serverId": 1,
+      "fileName": "application.log",
+      "logPath": "/var/log/app/application.log",
+      "logType": "ERROR",
+      "content": "NullPointerException in service layer...",
+      "originalTimestamp": "2025-10-18 14:32:15",
+      "transactionId": "TXN-20251018-001",
+      "parsed": true,
+      "errorIndicator": true
+    }
+  ],
+  "totalElements": 150,
+  "totalPages": 8,
+  "size": 20,
+  "number": 0
+}
+```
+
+**获取单条日志**
+```http
+GET /api/v1/logs/{id}
+```
+
+**按事务ID查询日志**
+```http
+GET /api/v1/logs/transaction/{transactionId}
+```
+
+**查询错误日志**
+```http
+GET /api/v1/logs/errors?page=0&size=20
+```
+
+**获取统计数据**
+```http
+GET /api/v1/logs/statistics?startTime=2025-10-18T00:00:00&endTime=2025-10-19T23:59:59
+```
+
+响应示例：
+```json
+{
+  "totalLogs": 10500,
+  "errorLogs": 127,
+  "parsedLogs": 10450,
+  "unparsedLogs": 50,
+  "errorRate": 1.21
+}
+```
+
+#### 事务查询接口
+
+**查询事务列表**
+```http
+GET /api/v1/transactions?page=0&size=20&status=SUCCESS
+```
+
+**获取事务详情**
+```http
+GET /api/v1/transactions/{transactionId}
+```
+
+**获取事务关联日志**
+```http
+GET /api/v1/transactions/{transactionId}/logs
+```
+
+### 界面设计特点
+
+- **现代化紫色渐变主题**：专业且美观
+- **响应式布局**：适配不同屏幕尺寸
+- **标签页导航**：清晰的功能分区
+- **数据表格**：清晰的列展示与交互
+- **模态对话框**：查看完整日志内容
+- **状态徽章**：直观的状态标识（成功/失败/处理中）
+- **加载指示器**：友好的等待提示
+
+### 开发环境配置
+
+日志查看系统在开发环境下自动启用：
+
+**application-dev.yml**:
+```yaml
+spring:
+  security:
+    oauth2:
+      # 开发环境禁用 OAuth2 认证
+
+server:
+  port: 8080
+
+# 静态资源自动加载
+```
+
+**安全配置**：
+- 开发环境：无需认证，允许所有请求
+- 生产环境：需要 OAuth2 JWT 认证
+
+### 技术实现
+
+**后端架构**：
+- Spring Boot REST Controllers
+- Service 层业务逻辑
+- JPA Repository 数据访问
+- DTO 数据传输对象
+- 分页查询支持
+
+**前端技术**：
+- 纯 HTML5/CSS3/JavaScript
+- 无框架依赖，轻量级
+- Fetch API 异步请求
+- DOM 操作与事件处理
+
+**CORS 配置**：
+```java
+@Bean
+public CorsFilter corsFilter() {
+    CorsConfiguration config = new CorsConfiguration();
+    config.addAllowedOrigin("*");
+    config.addAllowedMethod("*");
+    config.addAllowedHeader("*");
+    return new CorsFilter(source);
+}
+```
+
+### 使用场景
+
+1. **日常日志查看**：快速浏览系统运行日志
+2. **问题排查**：通过时间范围和类型筛选定位问题
+3. **事务追踪**：追踪分布式事务的完整流程
+4. **错误监控**：快速识别和查看错误日志
+5. **统计分析**：了解系统日志产生和错误趋势
+
+### 性能优化
+
+- 分页加载，避免一次性加载大量数据
+- 后端索引优化，加速查询速度
+- 前端按需加载，提升页面响应
+- 缓存策略，减少重复请求
 
 ## 🏛 系统架构
 

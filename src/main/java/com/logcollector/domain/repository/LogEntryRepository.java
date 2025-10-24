@@ -44,5 +44,10 @@ public interface LogEntryRepository extends JpaRepository<LogEntry, Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
+    @Query("SELECT COUNT(l) FROM LogEntry l WHERE l.originalTimestamp BETWEEN :start AND :end")
+    long countAllInTimeRange(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
     void deleteByOriginalTimestampBefore(LocalDateTime cutoffDate);
 }

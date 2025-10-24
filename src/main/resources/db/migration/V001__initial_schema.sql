@@ -58,10 +58,12 @@ CREATE TABLE transactions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- Log Entries (Partitioned by month)
+-- Log Entries
+-- Note: Partitioning removed for dev environment to avoid MySQL limitations
+-- Can be added back in production with DATETIME type and proper configuration
 -- ============================================================================
 CREATE TABLE log_entries (
-    id BIGINT AUTO_INCREMENT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     server_id BIGINT NOT NULL,
     file_name VARCHAR(255) NOT NULL,
     log_path VARCHAR(500) NOT NULL,
@@ -72,23 +74,12 @@ CREATE TABLE log_entries (
     transaction_id VARCHAR(100) NULL,
     parsed BOOLEAN NOT NULL DEFAULT FALSE,
     error_indicator BOOLEAN NOT NULL DEFAULT FALSE,
-    PRIMARY KEY (id, original_timestamp),
     INDEX idx_timestamp_server (original_timestamp, server_id),
     INDEX idx_transaction (transaction_id),
     INDEX idx_parsed (parsed, collection_timestamp),
-    FULLTEXT INDEX idx_content (content),
     FOREIGN KEY (server_id) REFERENCES server_configurations(id) ON DELETE CASCADE,
     FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-PARTITION BY RANGE (YEAR(original_timestamp) * 100 + MONTH(original_timestamp)) (
-    PARTITION p202510 VALUES LESS THAN (202511),
-    PARTITION p202511 VALUES LESS THAN (202512),
-    PARTITION p202512 VALUES LESS THAN (202601),
-    PARTITION p202601 VALUES LESS THAN (202602),
-    PARTITION p202602 VALUES LESS THAN (202603),
-    PARTITION p202603 VALUES LESS THAN (202604),
-    PARTITION p_future VALUES LESS THAN MAXVALUE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
 -- Transaction Flow Nodes
@@ -117,7 +108,7 @@ CREATE TABLE alert_rules (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL UNIQUE,
     alert_type VARCHAR(100) NOT NULL,
-    condition TEXT NOT NULL,
+    alert_condition TEXT NOT NULL,
     threshold DECIMAL(10,4) NULL,
     time_window_minutes INT NOT NULL DEFAULT 5,
     severity ENUM('CRITICAL', 'WARNING', 'INFO') NOT NULL,
@@ -189,7 +180,7 @@ INSERT INTO user_accounts (username, email, roles, enabled) VALUES
 -- ============================================================================
 -- Seed Data - Sample Alert Rules
 -- ============================================================================
-INSERT INTO alert_rules (name, alert_type, condition, threshold, time_window_minutes, severity, delivery_channels, email_recipients, created_by) VALUES
+INSERT INTO alert_rules (name, alert_type, alert_condition, threshold, time_window_minutes, severity, delivery_channels, email_recipients, created_by) VALUES
 ('High Error Rate', 'ERROR_RATE', 'errorRate > 0.1', 0.1, 5, 'CRITICAL', '["email", "webhook"]', '["ops@logcollector.com"]', 1),
 ('Transaction Timeout', 'TRANSACTION_TIMEOUT', 'avgDuration > 30000', 30000, 10, 'WARNING', '["email"]', '["support@logcollector.com"]', 1),
 ('System Down', 'SYSTEM_DOWN', 'serverStatus = ERROR', NULL, 1, 'CRITICAL', '["email", "webhook"]', '["oncall@logcollector.com"]', 1);

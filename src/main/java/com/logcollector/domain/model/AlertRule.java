@@ -31,9 +31,9 @@ public class AlertRule {
     @NotBlank(message = "Alert type is required")
     private String alertType;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "alert_condition", nullable = false, columnDefinition = "TEXT")
     @NotBlank(message = "Condition is required")
-    private String condition;
+    private String alertCondition;
 
     @Column(precision = 10, scale = 4)
     private BigDecimal threshold;

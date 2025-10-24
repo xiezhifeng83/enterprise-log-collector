@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业级日志收集系统 - 日志查看 (测试版)</title>
+    <style>
+        * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+.tab-nav {
+    display: flex;
+    background: #f5f5f5;
+    border-bottom: 2px solid #ddd;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 500;
+    transition: all 0.3s;
+    color: #666;
+}
+
+.tab-button:hover {
+    background: #e0e0e0;
+}
+
+.tab-button.active {
+    background: white;
+    color: #667eea;
+    border-bottom: 3px solid #667eea;
+}
+
+.tab-content {
+    display: none;
+    padding: 30px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.filter-panel {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-panel h2 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.filter-row {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-item label {
+    font-weight: 500;
+    color: #555;
+}
+
+.filter-item input,
+.filter-item select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filter-item input[type="checkbox"] {
+    width: auto;
+}
+
+.btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5568d3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.table-container {
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background: #667eea;
+    color: white;
+}
+
+.data-table th,
+.data-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.data-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+}
+
+.data-table tbody tr:hover {
+    background: #f5f5f5;
+}
+
+.data-table tbody tr.error-row {
+    background: #fff5f5;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.badge.error {
+    background: #fee;
+    color: #c33;
+}
+
+.badge.success {
+    background: #efe;
+    color: #3c3;
+}
+
+.badge.warning {
+    background: #ffeaa7;
+    color: #d63031;
+}
+
+.badge.info {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.error {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card h3 {
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    opacity: 0.9;
+}
+
+.stat-value {
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.action-btn {
+    padding: 4px 12px;
+    font-size: 0.85em;
+    margin-right: 5px;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>企业级日志收集系统</h1>
+            <p class="subtitle">Log Collection & Analysis Platform (测试版 - 模拟数据)</p>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-button active" onclick="showTab('logs')">日志查询</button>
+            <button class="tab-button" onclick="showTab('transactions')">事务追踪</button>
+            <button class="tab-button" onclick="showTab('statistics')">统计分析</button>
+        </nav>
+
+        <!-- Logs Tab -->
+        <div id="logs-tab" class="tab-content active">
+            <div class="filter-panel">
+                <h2>日志查询</h2>
+                <p style="color: #f39c12; margin-bottom: 10px;">
+                    <strong>注意:</strong> 这是前端测试版本，显示的是模拟数据。后端API待MySQL数据库配置后可用。
+                </p>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>服务器ID</th>
+                            <th>日志类型</th>
+                            <th>文件名</th>
+                            <th>时间</th>
+                            <th>内容</th>
+                            <th>事务ID</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1001</td>
+                            <td>1</td>
+                            <td>application</td>
+                            <td>app.log</td>
+                            <td>2024-10-24 10:00:00</td>
+                            <td>Application started successfully</td>
+                            <td>TXN-001</td>
+                            <td><span class="badge success">正常</span></td>
+                        </tr>
+                        <tr class="error-row">
+                            <td>1002</td>
+                            <td>1</td>
+                            <td>error</td>
+                            <td>error.log</td>
+                            <td>2024-10-24 10:05:23</td>
+                            <td>NullPointerException at line 234 in UserService.java</td>
+                            <td>TXN-002</td>
+                            <td><span class="badge error">错误</span></td>
+                        </tr>
+                        <tr>
+                            <td>1003</td>
+                            <td>2</td>
+                            <td>access</td>
+                            <td>access.log</td>
+                            <td>2024-10-24 10:10:15</td>
+                            <td>GET /api/users/123 - 200 OK - 45ms</td>
+                            <td>-</td>
+                            <td><span class="badge success">正常</span></td>
+                        </tr>
+                        <tr>
+                            <td>1004</td>
+                            <td>1</td>
+                            <td>database</td>
+                            <td>db.log</td>
+                            <td>2024-10-24 10:15:30</td>
+                            <td>Query executed: SELECT * FROM users WHERE id=123</td>
+                            <td>TXN-003</td>
+                            <td><span class="badge success">正常</span> <span class="badge info">已解析</span></td>
+                        </tr>
+                        <tr class="error-row">
+                            <td>1005</td>
+                            <td>3</td>
+                            <td>security</td>
+                            <td>security.log</td>
+                            <td>2024-10-24 10:20:45</td>
+                            <td>Failed login attempt from IP 192.168.1.100</td>
+                            <td>-</td>
+                            <td><span class="badge warning">警告</span></td>
+                        </tr>
+                        <tr>
+                            <td>1006</td>
+                            <td>2</td>
+                            <td>application</td>
+                            <td>app.log</td>
+                            <td>2024-10-24 10:25:10</td>
+                            <td>Cache refreshed successfully - 500 entries loaded</td>
+                            <td>TXN-004</td>
+                            <td><span class="badge success">正常</span></td>
+                        </tr>
+                        <tr>
+                            <td>1007</td>
+                            <td>1</td>
+                            <td>performance</td>
+                            <td>perf.log</td>
+                            <td>2024-10-24 10:30:00</td>
+                            <td>API response time avg: 120ms, max: 450ms</td>
+                            <td>-</td>
+                            <td><span class="badge info">已解析</span></td>
+                        </tr>
+                        <tr class="error-row">
+                            <td>1008</td>
+                            <td>2</td>
+                            <td>error</td>
+                            <td>error.log</td>
+                            <td>2024-10-24 10:35:22</td>
+                            <td>Database connection timeout after 30s</td>
+                            <td>TXN-005</td>
+                            <td><span class="badge error">错误</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div id="transactions-tab" class="tab-content">
+            <div class="filter-panel">
+                <h2>事务追踪</h2>
+                <p style="color: #f39c12; margin-bottom: 10px;">
+                    <strong>注意:</strong> 这是前端测试版本，显示的是模拟数据。
+                </p>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>事务ID</th>
+                            <th>状态</th>
+                            <th>源系统</th>
+                            <th>目标系统</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>耗时(ms)</th>
+                            <th>重试次数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>TXN-001</td>
+                            <td><span class="badge success">成功</span></td>
+                            <td>frontend</td>
+                            <td>backend</td>
+                            <td>2024-10-24 10:00:00</td>
+                            <td>2024-10-24 10:00:05</td>
+                            <td>5000</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>TXN-002</td>
+                            <td><span class="badge error">失败</span></td>
+                            <td>backend</td>
+                            <td>database</td>
+                            <td>2024-10-24 10:05:20</td>
+                            <td>2024-10-24 10:05:25</td>
+                            <td>5200</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td>TXN-003</td>
+                            <td><span class="badge success">成功</span></td>
+                            <td>frontend</td>
+                            <td>cache</td>
+                            <td>2024-10-24 10:15:28</td>
+                            <td>2024-10-24 10:15:30</td>
+                            <td>2000</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>TXN-004</td>
+                            <td><span class="badge success">成功</span></td>
+                            <td>scheduler</td>
+                            <td>cache</td>
+                            <td>2024-10-24 10:25:05</td>
+                            <td>2024-10-24 10:25:10</td>
+                            <td>5000</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>TXN-005</td>
+                            <td><span class="badge warning">超时</span></td>
+                            <td>backend</td>
+                            <td>database</td>
+                            <td>2024-10-24 10:35:00</td>
+                            <td>2024-10-24 10:35:30</td>
+                            <td>30000</td>
+                            <td>3</td>
+                        </tr>
+                        <tr>
+                            <td>TXN-006</td>
+                            <td><span class="badge info">进行中</span></td>
+                            <td>frontend</td>
+                            <td>backend</td>
+                            <td>2024-10-24 10:40:00</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="statistics-tab" class="tab-content">
+            <div class="filter-panel">
+                <h2>统计分析</h2>
+                <p style="color: #f39c12; margin-bottom: 10px;">
+                    <strong>注意:</strong> 这是前端测试版本，显示的是模拟数据。
+                </p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>总日志数</h3>
+                    <p class="stat-value">10,234</p>
+                </div>
+                <div class="stat-card error">
+                    <h3>错误日志</h3>
+                    <p class="stat-value">156</p>
+                </div>
+                <div class="stat-card">
+                    <h3>已解析</h3>
+                    <p class="stat-value">9,500</p>
+                </div>
+                <div class="stat-card">
+                    <h3>未解析</h3>
+                    <p class="stat-value">734</p>
+                </div>
+                <div class="stat-card">
+                    <h3>错误率</h3>
+                    <p class="stat-value">1.52%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
