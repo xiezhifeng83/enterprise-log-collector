@@ -1,0 +1,105 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# Gradle (if used as alternative)
+.gradle/
+build/
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+.sts4-cache/
+
+# Spring Boot
+spring-boot-*.log
+spring-boot-*.log.*
+
+# Logs
+logs/
+*.log
+*.log.*
+*.out
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.properties
+**/secrets/
+credentials.json
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+
+# Test
+.testcontainers/
+testcontainers.properties
+
+# Coverage
+.jacoco/
+*.exec
+coverage/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Temporary
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+.cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+
+# Docker
+docker-compose.override.yml
+
+# Kubernetes
+**/secrets-*.yaml
+**/credentials-*.yaml
+
+# JMH Benchmarks
+jmh-result.json

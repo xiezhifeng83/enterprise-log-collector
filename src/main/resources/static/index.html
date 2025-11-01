@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业级日志收集系统 - 日志查看</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>企业级日志收集系统</h1>
+            <p class="subtitle">Log Collection & Analysis Platform</p>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-button active" onclick="showTab('logs')">日志查询</button>
+            <button class="tab-button" onclick="showTab('transactions')">事务追踪</button>
+            <button class="tab-button" onclick="showTab('statistics')">统计分析</button>
+        </nav>
+
+        <!-- Logs Tab -->
+        <div id="logs-tab" class="tab-content active">
+            <div class="filter-panel">
+                <h2>日志查询</h2>
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <label for="serverId">服务器ID:</label>
+                        <input type="number" id="serverId" placeholder="可选">
+                    </div>
+                    <div class="filter-item">
+                        <label for="startTime">开始时间:</label>
+                        <input type="datetime-local" id="startTime">
+                    </div>
+                    <div class="filter-item">
+                        <label for="endTime">结束时间:</label>
+                        <input type="datetime-local" id="endTime">
+                    </div>
+                    <div class="filter-item">
+                        <label>
+                            <input type="checkbox" id="errorOnly"> 仅显示错误日志
+                        </label>
+                    </div>
+                    <div class="filter-item">
+                        <button class="btn btn-primary" onclick="searchLogs()">查询</button>
+                        <button class="btn btn-secondary" onclick="resetFilters()">重置</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pagination-info">
+                <span id="total-logs">总记录: 0</span>
+                <div class="pagination-controls">
+                    <button class="btn" onclick="previousPage()" id="prev-btn" disabled>上一页</button>
+                    <span id="page-info">第 1 页 / 共 1 页</span>
+                    <button class="btn" onclick="nextPage()" id="next-btn" disabled>下一页</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>服务器ID</th>
+                            <th>日志类型</th>
+                            <th>文件名</th>
+                            <th>时间</th>
+                            <th>内容</th>
+                            <th>事务ID</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-tbody">
+                        <tr>
+                            <td colspan="9" class="no-data">暂无数据，请先查询</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div id="transactions-tab" class="tab-content">
+            <div class="filter-panel">
+                <h2>事务追踪</h2>
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <label for="txStatus">状态:</label>
+                        <select id="txStatus">
+                            <option value="">全部</option>
+                            <option value="SUCCESS">成功</option>
+                            <option value="FAILED">失败</option>
+                            <option value="TIMEOUT">超时</option>
+                            <option value="IN_PROGRESS">进行中</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="txStartTime">开始时间:</label>
+                        <input type="datetime-local" id="txStartTime">
+                    </div>
+                    <div class="filter-item">
+                        <label for="txEndTime">结束时间:</label>
+                        <input type="datetime-local" id="txEndTime">
+                    </div>
+                    <div class="filter-item">
+                        <button class="btn btn-primary" onclick="searchTransactions()">查询</button>
+                        <button class="btn btn-secondary" onclick="resetTxFilters()">重置</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pagination-info">
+                <span id="total-transactions">总记录: 0</span>
+                <div class="pagination-controls">
+                    <button class="btn" onclick="previousTxPage()" id="prev-tx-btn" disabled>上一页</button>
+                    <span id="tx-page-info">第 1 页 / 共 1 页</span>
+                    <button class="btn" onclick="nextTxPage()" id="next-tx-btn" disabled>下一页</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>事务ID</th>
+                            <th>状态</th>
+                            <th>源系统</th>
+                            <th>目标系统</th>
+                            <th>开始时间</th>
+                            <th>结束时间</th>
+                            <th>耗时(ms)</th>
+                            <th>重试次数</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-tbody">
+                        <tr>
+                            <td colspan="9" class="no-data">暂无数据，请先查询</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="statistics-tab" class="tab-content">
+            <div class="filter-panel">
+                <h2>统计分析</h2>
+                <div class="filter-row">
+                    <div class="filter-item">
+                        <label for="statsStartTime">开始时间:</label>
+                        <input type="datetime-local" id="statsStartTime">
+                    </div>
+                    <div class="filter-item">
+                        <label for="statsEndTime">结束时间:</label>
+                        <input type="datetime-local" id="statsEndTime">
+                    </div>
+                    <div class="filter-item">
+                        <button class="btn btn-primary" onclick="loadStatistics()">查询统计</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>总日志数</h3>
+                    <p class="stat-value" id="stat-total">0</p>
+                </div>
+                <div class="stat-card error">
+                    <h3>错误日志</h3>
+                    <p class="stat-value" id="stat-errors">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>已解析</h3>
+                    <p class="stat-value" id="stat-parsed">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>未解析</h3>
+                    <p class="stat-value" id="stat-unparsed">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>错误率</h3>
+                    <p class="stat-value" id="stat-error-rate">0%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal for log details -->
+        <div id="logModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>日志详情</h2>
+                <div id="modal-body"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

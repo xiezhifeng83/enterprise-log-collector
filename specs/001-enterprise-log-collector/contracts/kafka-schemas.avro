@@ -1,0 +1,384 @@
+// Kafka Message Schemas (Avro format)
+// These schemas define the contract for messages exchanged via Kafka topics
+
+// ============================================================================
+// Topic: log-raw-topic
+// Producer: LogCollectorService
+// Consumer: LogProcessorService
+// Purpose: Raw log lines collected from servers
+// ============================================================================
+
+{
+  "type": "record",
+  "name": "RawLogMessage",
+  "namespace": "com.logcollector.kafka",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "string",
+      "doc": "Unique ID for distributed tracing"
+    },
+    {
+      "name": "serverId",
+      "type": "long",
+      "doc": "Reference to server_configurations.id"
+    },
+    {
+      "name": "serverHostname",
+      "type": "string",
+      "doc": "Server hostname for display"
+    },
+    {
+      "name": "fileName",
+      "type": "string",
+      "doc": "Log file name (e.g., 64701.log)"
+    },
+    {
+      "name": "logPath",
+      "type": "string",
+      "doc": "Full path to log file"
+    },
+    {
+      "name": "logType",
+      "type": "string",
+      "doc": "Log type identifier (MAIN_APP, LEDGER, GATEWAY)"
+    },
+    {
+      "name": "content",
+      "type": "string",
+      "doc": "Raw log line content"
+    },
+    {
+      "name": "originalTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "Timestamp from log line (epoch millis)"
+    },
+    {
+      "name": "collectionTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When log was collected (epoch millis)"
+    },
+    {
+      "name": "metadata",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Optional metadata (e.g., line number, file size)"
+    }
+  ]
+}
+
+// ============================================================================
+// Topic: log-processed-topic
+// Producer: LogProcessorService
+// Consumer: TransactionAnalyzer, AlertService
+// Purpose: Parsed and enriched log entries
+// ============================================================================
+
+{
+  "type": "record",
+  "name": "ProcessedLogMessage",
+  "namespace": "com.logcollector.kafka",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "string",
+      "doc": "Carried forward from RawLogMessage"
+    },
+    {
+      "name": "logEntryId",
+      "type": "long",
+      "doc": "Database ID (log_entries.id)"
+    },
+    {
+      "name": "serverId",
+      "type": "long"
+    },
+    {
+      "name": "serverHostname",
+      "type": "string"
+    },
+    {
+      "name": "fileName",
+      "type": "string"
+    },
+    {
+      "name": "logType",
+      "type": "string"
+    },
+    {
+      "name": "content",
+      "type": "string"
+    },
+    {
+      "name": "originalTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    },
+    {
+      "name": "transactionId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Extracted transaction ID (nullable)"
+    },
+    {
+      "name": "errorIndicator",
+      "type": "boolean",
+      "default": false,
+      "doc": "True if log contains ERROR/EXCEPTION keywords"
+    },
+    {
+      "name": "parsedFields",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Extracted fields (e.g., user_id, ip_address, action)"
+    },
+    {
+      "name": "processingTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When log was processed"
+    }
+  ]
+}
+
+// ============================================================================
+// Topic: alert-topic
+// Producer: AlertService
+// Consumer: NotificationService (email/webhook delivery)
+// Purpose: Triggered alerts for delivery
+// ============================================================================
+
+{
+  "type": "record",
+  "name": "AlertMessage",
+  "namespace": "com.logcollector.kafka",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "string"
+    },
+    {
+      "name": "alertInstanceId",
+      "type": "long",
+      "doc": "Database ID (alert_instances.id)"
+    },
+    {
+      "name": "ruleId",
+      "type": "long",
+      "doc": "Alert rule that triggered"
+    },
+    {
+      "name": "ruleName",
+      "type": "string",
+      "doc": "Alert rule name for display"
+    },
+    {
+      "name": "transactionId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Related transaction (if applicable)"
+    },
+    {
+      "name": "severity",
+      "type": {
+        "type": "enum",
+        "name": "AlertSeverity",
+        "symbols": ["CRITICAL", "WARNING", "INFO"]
+      },
+      "doc": "Alert severity level"
+    },
+    {
+      "name": "title",
+      "type": "string",
+      "doc": "Alert title"
+    },
+    {
+      "name": "message",
+      "type": "string",
+      "doc": "Detailed alert message"
+    },
+    {
+      "name": "alertTime",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When alert was triggered"
+    },
+    {
+      "name": "deliveryChannels",
+      "type": {
+        "type": "array",
+        "items": "string"
+      },
+      "doc": "Delivery methods (email, webhook, sms)"
+    },
+    {
+      "name": "emailRecipients",
+      "type": ["null", {
+        "type": "array",
+        "items": "string"
+      }],
+      "default": null,
+      "doc": "Email addresses for delivery"
+    },
+    {
+      "name": "webhookUrl",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Webhook endpoint for delivery"
+    },
+    {
+      "name": "context",
+      "type": ["null", {
+        "type": "map",
+        "values": "string"
+      }],
+      "default": null,
+      "doc": "Additional context data"
+    }
+  ]
+}
+
+// ============================================================================
+// Topic: transaction-event-topic
+// Producer: TransactionAnalyzer
+// Consumer: Cache update service, metrics service
+// Purpose: Transaction state changes
+// ============================================================================
+
+{
+  "type": "record",
+  "name": "TransactionEventMessage",
+  "namespace": "com.logcollector.kafka",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "string"
+    },
+    {
+      "name": "transactionId",
+      "type": "string",
+      "doc": "Transaction identifier"
+    },
+    {
+      "name": "eventType",
+      "type": {
+        "type": "enum",
+        "name": "TransactionEventType",
+        "symbols": ["CREATED", "UPDATED", "COMPLETED", "FAILED", "TIMEOUT"]
+      },
+      "doc": "Type of transaction event"
+    },
+    {
+      "name": "oldStatus",
+      "type": ["null", {
+        "type": "enum",
+        "name": "TransactionStatus",
+        "symbols": ["SUCCESS", "FAILED", "TIMEOUT", "IN_PROGRESS"]
+      }],
+      "default": null,
+      "doc": "Previous status (null for CREATED event)"
+    },
+    {
+      "name": "newStatus",
+      "type": "TransactionStatus",
+      "doc": "Current status after event"
+    },
+    {
+      "name": "startTime",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    },
+    {
+      "name": "endTime",
+      "type": ["null", "long"],
+      "logicalType": "timestamp-millis",
+      "default": null
+    },
+    {
+      "name": "durationMs",
+      "type": ["null", "long"],
+      "default": null
+    },
+    {
+      "name": "sourceSystem",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "targetSystem",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "errorMessage",
+      "type": ["null", "string"],
+      "default": null
+    },
+    {
+      "name": "eventTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When this event was generated"
+    }
+  ]
+}
+
+// ============================================================================
+// Topic: archive-request-topic
+// Producer: ArchiveScheduler
+// Consumer: ArchiveService
+// Purpose: Trigger archival jobs
+// ============================================================================
+
+{
+  "type": "record",
+  "name": "ArchiveRequestMessage",
+  "namespace": "com.logcollector.kafka",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "string"
+    },
+    {
+      "name": "jobId",
+      "type": "long",
+      "doc": "Archive job ID for tracking"
+    },
+    {
+      "name": "startDate",
+      "type": "int",
+      "logicalType": "date",
+      "doc": "Beginning of date range (epoch days)"
+    },
+    {
+      "name": "endDate",
+      "type": "int",
+      "logicalType": "date",
+      "doc": "End of date range (epoch days)"
+    },
+    {
+      "name": "compress",
+      "type": "boolean",
+      "default": true,
+      "doc": "Whether to compress archived data"
+    },
+    {
+      "name": "cutoffDays",
+      "type": "int",
+      "doc": "Archive data older than this many days"
+    },
+    {
+      "name": "requestTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    }
+  ]
+}

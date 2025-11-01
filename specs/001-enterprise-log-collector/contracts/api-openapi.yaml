@@ -1,0 +1,1017 @@
+openapi: 3.0.3
+info:
+  title: Enterprise Log Collection API
+  description: |
+    RESTful API for enterprise log collection, transaction analysis, and alerting system.
+
+    **Authentication**: OAuth2 Bearer tokens issued by Keycloak
+    **Roles**: ADMIN, OPERATOR, VIEWER
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@logcollector.com
+
+servers:
+  - url: https://api.logcollector.example.com/v1
+    description: Production
+  - url: http://localhost:8080/v1
+    description: Local Development
+
+security:
+  - oauth2: []
+
+tags:
+  - name: Transactions
+    description: Transaction flow analysis and retrieval
+  - name: Logs
+    description: Log search and retrieval
+  - name: Alerts
+    description: Alert rules and instances
+  - name: Servers
+    description: Server configuration management
+  - name: Archive
+    description: Data archival operations
+  - name: Health
+    description: System health and metrics
+
+paths:
+  # Transaction Endpoints
+  /transactions:
+    get:
+      summary: List transactions
+      description: Retrieve paginated list of transactions with optional filtering
+      tags: [Transactions]
+      security:
+        - oauth2: [read:transactions]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: "startTime,desc"
+            example: "startTime,desc"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [SUCCESS, FAILED, TIMEOUT, IN_PROGRESS]
+        - name: startTimeFrom
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: startTimeTo
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: sourceSystem
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedTransactionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /transactions/{transactionId}:
+    get:
+      summary: Get transaction details
+      description: Retrieve complete transaction information including associated log entries
+      tags: [Transactions]
+      security:
+        - oauth2: [read:transactions]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Z0-9]+$'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /transactions/{transactionId}/flow:
+    get:
+      summary: Get transaction flow diagram
+      description: Retrieve visual flow representation of transaction across systems
+      tags: [Transactions]
+      security:
+        - oauth2: [read:transactions]
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionFlow'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Log Search Endpoints
+  /logs/search:
+    post:
+      summary: Search logs
+      description: Full-text search across all log entries with filtering
+      tags: [Logs]
+      security:
+        - oauth2: [read:logs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogSearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Alert Endpoints
+  /alerts/active:
+    get:
+      summary: Get active alerts
+      description: Retrieve all unresolved alert instances
+      tags: [Alerts]
+      security:
+        - oauth2: [read:alerts]
+      parameters:
+        - name: severity
+          in: query
+          schema:
+            type: string
+            enum: [CRITICAL, WARNING, INFO]
+      responses:
+        '200':
+          description: Active alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertListResponse'
+
+  /alerts/{alertId}/acknowledge:
+    post:
+      summary: Acknowledge alert
+      description: Mark alert as acknowledged by current user
+      tags: [Alerts]
+      security:
+        - oauth2: [write:alerts]
+      parameters:
+        - name: alertId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /alerts/rules:
+    get:
+      summary: List alert rules
+      description: Retrieve all alert rule configurations
+      tags: [Alerts]
+      security:
+        - oauth2: [read:alerts]
+      responses:
+        '200':
+          description: Alert rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertRule'
+
+    post:
+      summary: Create alert rule
+      description: Create new alert rule configuration (ADMIN only)
+      tags: [Alerts]
+      security:
+        - oauth2: [admin:alerts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRuleRequest'
+      responses:
+        '201':
+          description: Alert rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /alerts/rules/{ruleId}:
+    put:
+      summary: Update alert rule
+      description: Modify existing alert rule (ADMIN only)
+      tags: [Alerts]
+      security:
+        - oauth2: [admin:alerts]
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAlertRuleRequest'
+      responses:
+        '200':
+          description: Alert rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete alert rule
+      description: Remove alert rule (ADMIN only)
+      tags: [Alerts]
+      security:
+        - oauth2: [admin:alerts]
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Alert rule deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Server Configuration Endpoints
+  /servers:
+    get:
+      summary: List server configurations
+      description: Retrieve all configured log collection servers
+      tags: [Servers]
+      security:
+        - oauth2: [read:servers]
+      responses:
+        '200':
+          description: Server list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServerConfiguration'
+
+    post:
+      summary: Add server configuration
+      description: Configure new server for log collection (ADMIN only)
+      tags: [Servers]
+      security:
+        - oauth2: [admin:servers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServerRequest'
+      responses:
+        '201':
+          description: Server configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerConfiguration'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /servers/{serverId}:
+    put:
+      summary: Update server configuration
+      description: Modify server settings (ADMIN only)
+      tags: [Servers]
+      security:
+        - oauth2: [admin:servers]
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateServerRequest'
+      responses:
+        '200':
+          description: Server updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerConfiguration'
+
+    delete:
+      summary: Remove server configuration
+      description: Delete server from collection (ADMIN only)
+      tags: [Servers]
+      security:
+        - oauth2: [admin:servers]
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Server removed
+
+  # Archive Endpoints
+  /admin/archive:
+    post:
+      summary: Trigger manual archival
+      description: Initiate data archival process (ADMIN only)
+      tags: [Archive]
+      security:
+        - oauth2: [admin:archive]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriggerArchiveRequest'
+      responses:
+        '202':
+          description: Archival started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchiveJobStatus'
+
+  /admin/archive/files:
+    get:
+      summary: List archived files
+      description: Retrieve list of archive files from MinIO storage
+      tags: [Archive]
+      security:
+        - oauth2: [read:archive]
+      parameters:
+        - name: prefix
+          in: query
+          schema:
+            type: string
+            example: "2025-10"
+      responses:
+        '200':
+          description: Archived files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArchiveFileList'
+
+  # Health & Metrics
+  /actuator/health:
+    get:
+      summary: Health check
+      description: System health status (unauthenticated for k8s probes)
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: System unhealthy
+
+  /actuator/metrics:
+    get:
+      summary: Prometheus metrics
+      description: Metrics endpoint for Prometheus scraping
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: Metrics data
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP logs_collected_total Total logs collected
+                  # TYPE logs_collected_total counter
+                  logs_collected_total 1000000
+
+  /metrics:
+    get:
+      summary: System metrics summary
+      description: High-level system metrics (authenticated)
+      tags: [Health]
+      security:
+        - oauth2: [read:metrics]
+      responses:
+        '200':
+          description: Metrics summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://keycloak.example.com/realms/log-monitor/protocol/openid-connect/auth
+          tokenUrl: https://keycloak.example.com/realms/log-monitor/protocol/openid-connect/token
+          scopes:
+            read:transactions: Read transaction data
+            read:logs: Search and read logs
+            read:alerts: View alerts
+            write:alerts: Acknowledge alerts
+            admin:alerts: Manage alert rules
+            read:servers: View server configurations
+            admin:servers: Manage server configurations
+            read:archive: View archived data
+            admin:archive: Trigger archival operations
+            read:metrics: View system metrics
+
+  schemas:
+    # Transaction Schemas
+    PagedTransactionResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionSummary'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        number:
+          type: integer
+        size:
+          type: integer
+
+    TransactionSummary:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        status:
+          type: string
+          enum: [SUCCESS, FAILED, TIMEOUT, IN_PROGRESS]
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+          nullable: true
+        durationMs:
+          type: integer
+          format: int64
+          nullable: true
+        sourceSystem:
+          type: string
+          nullable: true
+        targetSystem:
+          type: string
+          nullable: true
+
+    TransactionDetail:
+      allOf:
+        - $ref: '#/components/schemas/TransactionSummary'
+        - type: object
+          properties:
+            errorMessage:
+              type: string
+              nullable: true
+            retryCount:
+              type: integer
+            logEntries:
+              type: array
+              items:
+                $ref: '#/components/schemas/LogEntry'
+
+    TransactionFlow:
+      type: object
+      properties:
+        transactionId:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowEdge'
+        mermaid:
+          type: object
+          properties:
+            diagram:
+              type: string
+              description: Mermaid diagram syntax
+            nodeCount:
+              type: integer
+
+    FlowNode:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+        systemName:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [STARTED, COMPLETED, FAILED]
+
+    FlowEdge:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    # Log Schemas
+    LogSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: Full-text search query
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        servers:
+          type: array
+          items:
+            type: string
+        logTypes:
+          type: array
+          items:
+            type: string
+        page:
+          type: integer
+          default: 0
+        size:
+          type: integer
+          default: 50
+
+    LogSearchResponse:
+      type: object
+      properties:
+        hits:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+        total:
+          type: integer
+          format: int64
+
+    LogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        fileName:
+          type: string
+        serverName:
+          type: string
+        logPath:
+          type: string
+        logType:
+          type: string
+        content:
+          type: string
+        originalTimestamp:
+          type: string
+          format: date-time
+        transactionId:
+          type: string
+          nullable: true
+        highlight:
+          type: string
+          description: Highlighted search match
+          nullable: true
+
+    # Alert Schemas
+    AlertListResponse:
+      type: object
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertInstance'
+
+    AlertInstance:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        ruleId:
+          type: integer
+          format: int64
+        transactionId:
+          type: string
+          nullable: true
+        severity:
+          type: string
+          enum: [CRITICAL, WARNING, INFO]
+        title:
+          type: string
+        message:
+          type: string
+        alertTime:
+          type: string
+          format: date-time
+        resolvedTime:
+          type: string
+          format: date-time
+          nullable: true
+        resolved:
+          type: boolean
+        acknowledged:
+          type: boolean
+        acknowledgedBy:
+          type: string
+          nullable: true
+
+    AlertRule:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        alertType:
+          type: string
+        condition:
+          type: string
+        threshold:
+          type: number
+          nullable: true
+        timeWindowMinutes:
+          type: integer
+        severity:
+          type: string
+          enum: [CRITICAL, WARNING, INFO]
+        deliveryChannels:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+
+    CreateAlertRuleRequest:
+      type: object
+      required: [name, alertType, condition, severity, deliveryChannels]
+      properties:
+        name:
+          type: string
+        alertType:
+          type: string
+        condition:
+          type: string
+        threshold:
+          type: number
+        timeWindowMinutes:
+          type: integer
+          default: 5
+        severity:
+          type: string
+          enum: [CRITICAL, WARNING, INFO]
+        deliveryChannels:
+          type: array
+          items:
+            type: string
+        emailRecipients:
+          type: array
+          items:
+            type: string
+        webhookUrl:
+          type: string
+
+    UpdateAlertRuleRequest:
+      type: object
+      properties:
+        condition:
+          type: string
+        threshold:
+          type: number
+        timeWindowMinutes:
+          type: integer
+        severity:
+          type: string
+        deliveryChannels:
+          type: array
+          items:
+            type: string
+        enabled:
+          type: boolean
+
+    # Server Schemas
+    ServerConfiguration:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        hostname:
+          type: string
+        port:
+          type: integer
+        username:
+          type: string
+        logFilePaths:
+          type: array
+          items:
+            type: string
+        collectionInterval:
+          type: integer
+        batchSize:
+          type: integer
+        status:
+          type: string
+          enum: [CONNECTED, DISCONNECTED, ERROR]
+        lastConnectedAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastCollectionAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    CreateServerRequest:
+      type: object
+      required: [hostname, username, password, logFilePaths]
+      properties:
+        hostname:
+          type: string
+        port:
+          type: integer
+          default: 22
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        logFilePaths:
+          type: array
+          items:
+            type: string
+        collectionInterval:
+          type: integer
+          default: 30000
+        batchSize:
+          type: integer
+          default: 500
+
+    UpdateServerRequest:
+      type: object
+      properties:
+        password:
+          type: string
+          format: password
+        logFilePaths:
+          type: array
+          items:
+            type: string
+        collectionInterval:
+          type: integer
+        batchSize:
+          type: integer
+
+    # Archive Schemas
+    TriggerArchiveRequest:
+      type: object
+      required: [cutoffDays]
+      properties:
+        cutoffDays:
+          type: integer
+          description: Archive data older than this many days
+        compress:
+          type: boolean
+          default: true
+
+    ArchiveJobStatus:
+      type: object
+      properties:
+        jobId:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [RUNNING, COMPLETED, FAILED]
+        startTime:
+          type: string
+          format: date-time
+        estimatedCompletion:
+          type: string
+          format: date-time
+          nullable: true
+
+    ArchiveFileList:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchiveFile'
+
+    ArchiveFile:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+          format: int64
+        lastModified:
+          type: string
+          format: date-time
+
+    # Health Schemas
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DOWN]
+        components:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+
+    MetricsResponse:
+      type: object
+      properties:
+        logs:
+          type: object
+          properties:
+            processedTotal:
+              type: integer
+              format: int64
+            errorTotal:
+              type: integer
+              format: int64
+            processingRate:
+              type: number
+              format: double
+        transactions:
+          type: object
+          properties:
+            active:
+              type: integer
+            successRate:
+              type: number
+            averageDuration:
+              type: number
+        system:
+          type: object
+          properties:
+            cpu:
+              type: number
+            memory:
+              type: number
+            disk:
+              type: number
+
+    # Common Schemas
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

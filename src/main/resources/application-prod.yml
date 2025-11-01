@@ -1,0 +1,143 @@
+# Production Environment Configuration
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?useSSL=true&requireSSL=true&serverTimezone=UTC
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 20
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS}
+    producer:
+      acks: all
+      retries: 5
+      properties:
+        max.in.flight.requests.per.connection: 5
+        enable.idempotence: true
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL}
+      security.protocol: SASL_SSL
+      sasl.mechanism: SCRAM-SHA-256
+      sasl.jaas.config: ${KAFKA_JAAS_CONFIG}
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      ssl: true
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+          jwk-set-uri: ${KEYCLOAK_JWK_URI}
+
+logging:
+  level:
+    root: WARN
+    com.logcollector: INFO
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+  file:
+    name: /var/log/log-collector/application.log
+    max-size: 100MB
+    max-history: 30
+  pattern:
+    file: "[%d{ISO8601}] [%X{correlationId}] [%X{service}] [%-5level] [%thread] [%logger{36}] - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  server:
+    port: 9090
+
+elasticsearch:
+  uris: ${ELASTICSEARCH_URIS}
+  username: ${ELASTICSEARCH_USERNAME}
+  password: ${ELASTICSEARCH_PASSWORD}
+  connection-timeout: 10000
+  socket-timeout: 120000
+
+minio:
+  endpoint: ${MINIO_ENDPOINT}
+  access-key: ${MINIO_ACCESS_KEY}
+  secret-key: ${MINIO_SECRET_KEY}
+  secure: true
+
+log-collection:
+  enabled: true
+  default-interval: 30000
+  parallel-collection: true
+  thread-pool-size: 20
+  ssh:
+    timeout: 60000
+    retry-times: 5
+    retry-delay: 10000
+
+alerting:
+  enabled: true
+  email:
+    smtp:
+      host: ${SMTP_HOST}
+      port: ${SMTP_PORT}
+      username: ${SMTP_USERNAME}
+      password: ${SMTP_PASSWORD}
+      starttls: true
+  webhook:
+    timeout: 10000
+    retry-times: 3
+
+archiving:
+  enabled: true
+  cutoff-days: 30
+  schedule-cron: "0 0 2 * * ?"  # Daily at 2 AM
+  batch-size: 5000
+
+# Production JVM settings (passed via JAVA_OPTS)
+# -Xms4g -Xmx4g
+# -XX:+UseG1GC
+# -XX:MaxGCPauseMillis=200
+# -XX:G1HeapRegionSize=8M
+# -XX:+HeapDumpOnOutOfMemoryError
+# -XX:HeapDumpPath=/var/log/log-collector/heapdump.hprof
+
+server:
+  port: 8080
+  error:
+    include-stacktrace: never
+    include-message: never
+  shutdown: graceful
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s

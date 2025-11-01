@@ -1,0 +1,55 @@
+{
+  "type": "record",
+  "name": "RawLogMessage",
+  "namespace": "com.logcollector.kafka",
+  "doc": "Raw log lines collected from servers",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "string",
+      "doc": "Unique ID for distributed tracing"
+    },
+    {
+      "name": "serverId",
+      "type": "long",
+      "doc": "Reference to server_configurations.id"
+    },
+    {
+      "name": "serverHostname",
+      "type": "string",
+      "doc": "Server hostname for display"
+    },
+    {
+      "name": "fileName",
+      "type": "string",
+      "doc": "Log file name"
+    },
+    {
+      "name": "logPath",
+      "type": "string",
+      "doc": "Full path to log file"
+    },
+    {
+      "name": "logType",
+      "type": "string",
+      "doc": "Log type identifier"
+    },
+    {
+      "name": "content",
+      "type": "string",
+      "doc": "Raw log line content"
+    },
+    {
+      "name": "originalTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "Timestamp from log line (epoch millis)"
+    },
+    {
+      "name": "collectionTimestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "When log was collected (epoch millis)"
+    }
+  ]
+}
